@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           const pathLower = parsed.pathname.toLowerCase();
           const idParam = parsed.searchParams.get('id');
           const idLower = idParam ? idParam.toLowerCase() : '';
-          const isOneDrivePath = pathLower.endsWith(ONEDRIVE_PAGE_PATH) || pathLower.includes(ONEDRIVE_PAGE_PATH);
+          const isOneDrivePath = pathLower.includes(ONEDRIVE_PAGE_PATH);
           const looksLikeVideo = hrefLower.includes('videomanifest')
             || pathLower.endsWith('.mp4')
             || isOneDrivePath
@@ -48,7 +48,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           }
 
           // Direct mp4 links on the page; ensure they are download links.
-          if(parsed.pathname.toLowerCase().endsWith('.mp4')) {
+          if(pathLower.endsWith('.mp4')) {
             const hasDownload = parsed.searchParams.get('download') === '1';
             if(hasDownload) {
               manifestUrls.add(href);
@@ -83,7 +83,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       const anchorElements = document.querySelectorAll('a[href]');
       for(let i = 0; i < anchorElements.length; i++) {
         const href = anchorElements[i].href;
-        if(!href || !VIDEO_LINK_PATTERN.test(href)) continue;
+        if(!href) continue;
+        const hrefLower = href.toLowerCase();
+        if(!VIDEO_LINK_PATTERN.test(hrefLower)) continue;
         addVideoUrl(href);
       }
       

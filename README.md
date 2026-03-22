@@ -41,7 +41,7 @@ This extension is not in the Chrome Web Store and must be loaded manually:
 
 1. Go to a SharePoint or Microsoft Stream (Classic) video page
 2. Click the extension icon in the extensions bar, there will be a button to detect the video, and generate the command, you can then copy it. 
-3. If multiple videos are detected (e.g., on `{orgid}.sharepoint.com` lists or OneDrive folders), pick one from the dropdown or copy commands for all detected videos (no playback required).
+3. If multiple videos are detected (e.g., on `{orgid}.sharepoint.com` lists), pick one from the dropdown or copy commands for all detected videos. On OneDrive/list views, the links can be gathered without opening or playing each video.
 4. Paste the generated `ffmpeg` command into your terminal or command prompt to download the video
 
 ### FFmpeg auto-detection
