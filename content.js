@@ -149,8 +149,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             // SharePoint data-downloadurl is typically "mime/type:<actual-url>"; grab text after the first colon before any query/hash.
             const firstColon = raw.indexOf(':');
             const colonBeforeBoundary = firstColon > -1 && firstColon < boundary;
-            const colonIsProtocol = raw.slice(firstColon, firstColon + 3) === '://';
-            if (colonBeforeBoundary && !colonIsProtocol) {
+            const colonFollowedBySlashes = raw.slice(firstColon, firstColon + 3) === '://';
+            if (colonBeforeBoundary && !colonFollowedBySlashes) {
               const tail = raw.slice(firstColon + 1).trim();
               if (tail) {
                 candidateSet.add(tail);
@@ -158,6 +158,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             }
           }
 
+          // Only fall back to the raw value when no candidates were found and there was no colon metadata to strip.
           if (candidateSet.size === 0 && !raw.includes(':')) {
             candidateSet.add(raw);
           }
