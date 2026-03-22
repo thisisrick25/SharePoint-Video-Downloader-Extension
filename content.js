@@ -2,6 +2,17 @@
 const SHAREPOINT_DOWNLOAD_ENDPOINT = '/_layouts/15/download.aspx';
 const ONEDRIVE_PAGE_PATH = '/_layouts/15/onedrive.aspx';
 const MP4_LINK_PATTERN = /\.mp4($|[?#/])/i;
+const MIN_COLON_PARTS = 2;
+
+const looksLikeUrl = (value) => {
+  if (!value || typeof value !== 'string') return false;
+  const lower = value.toLowerCase();
+  return lower.startsWith('http://')
+    || lower.startsWith('https://')
+    || (value.startsWith('/') && !value.startsWith('//'))
+    || lower.includes(ONEDRIVE_PAGE_PATH)
+    || (MP4_LINK_PATTERN.test(value) && value.includes('/'));
+};
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if(request.action === "detectVideo") {
       const manifestUrls = new Set();
@@ -67,16 +78,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         } catch (e) {
           console.warn('SP Video Downloader: skipping malformed video URL', { url, error: e });
         }
-      };
-      
-      const looksLikeUrl = (value) => {
-        if (!value || typeof value !== 'string') return false;
-        const lower = value.toLowerCase();
-        return lower.startsWith('http://')
-          || lower.startsWith('https://')
-          || (value.startsWith('/') && !value.startsWith('//'))
-          || lower.includes(ONEDRIVE_PAGE_PATH)
-          || (MP4_LINK_PATTERN.test(value) && value.includes('/'));
       };
       
       // Check if we can access the network requests
@@ -148,10 +149,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             const boundary = boundaryCandidates.length ? Math.min(...boundaryCandidates) : -1;
             const lastColon = raw.lastIndexOf(':');
             const colonBeforeBoundary = boundary === -1 || lastColon < boundary;
-            // SharePoint data-downloadurl can be "mime:type:actualUrl" or similar; keep the trailing segment as the likely URL.
+            // SharePoint data-downloadurl can be "mime:type:actualUrl" or similar; keep the trailing segment as the likely URL when the colon appears before any query/hash.
             if (colonBeforeBoundary) {
               const colonParts = raw.split(':').map(p => p.trim()).filter(Boolean);
-              if (colonParts.length >= 2) {
+              // Require at least mime/type + URL segments before using the trailing entry.
+              if (colonParts.length >= MIN_COLON_PARTS) {
                 candidateSet.add(colonParts[colonParts.length - 1]);
               }
             }
