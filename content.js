@@ -1,7 +1,7 @@
 // content.js
 const SHAREPOINT_DOWNLOAD_ENDPOINT = '/_layouts/15/download.aspx';
 const ONEDRIVE_PAGE_PATH = '/_layouts/15/onedrive.aspx';
-const MP4_LINK_PATTERN = /\.mp4($|[?#/])/i;
+const MP4_LINK_PATTERN = /\.mp4($|[?#/])/;
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if(request.action === "detectVideo") {
       const manifestUrls = new Set();
@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           const idLower = idParam ? idParam.toLowerCase() : '';
           const looksLikeVideo = hrefLower.includes('videomanifest')
             || pathLower.endsWith('.mp4')
-            || pathLower.includes(ONEDRIVE_PAGE_PATH)
+            || pathLower.includes(ONEDRIVE_PAGE_PATH.toLowerCase())
             || idLower.endsWith('.mp4');
           if(!looksLikeVideo) {
             return;
@@ -36,7 +36,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             try {
               decodedPath = decodeURIComponent(idParam);
             } catch (e) {
-              // If decoding fails, skip this URL.
+              console.warn('SP Video Downloader: unable to decode OneDrive item id', idParam);
               return;
             }
             const normalizedPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`;
@@ -58,7 +58,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             manifestUrls.add(updated.toString());
           }
         } catch (e) {
-          // ignore malformed URLs
+          console.warn('SP Video Downloader: skipping malformed video URL', url);
         }
       };
       
@@ -85,7 +85,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         if(!href) continue;
         const hrefLower = href.toLowerCase();
         const looksLikeVideoLink = hrefLower.includes('videomanifest')
-          || MP4_LINK_PATTERN.test(href)
+          || MP4_LINK_PATTERN.test(hrefLower)
           || hrefLower.includes(ONEDRIVE_PAGE_PATH.toLowerCase());
         if(!looksLikeVideoLink) continue;
         addVideoUrl(href);
