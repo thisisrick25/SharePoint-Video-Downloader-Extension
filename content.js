@@ -144,7 +144,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           if (entry.key === 'data-downloadurl' && raw.includes(':') && !raw.includes('://')) {
             const queryIndex = raw.indexOf('?');
             const hashIndex = raw.indexOf('#');
-            const boundary = [queryIndex, hashIndex].filter(idx => idx >= 0).sort((a, b) => a - b)[0] ?? -1;
+            const boundaryCandidates = [queryIndex, hashIndex].filter(idx => idx >= 0);
+            const boundary = boundaryCandidates.length ? Math.min(...boundaryCandidates) : -1;
             const lastColon = raw.lastIndexOf(':');
             const colonBeforeBoundary = boundary === -1 || lastColon < boundary;
             // SharePoint data-downloadurl can be "mime:type:actualUrl" or similar; keep the trailing segment as the likely URL.
@@ -162,9 +163,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
           candidateSet.forEach(c => {
             if (!looksLikeUrl(c)) return;
-            if (MP4_LINK_PATTERN.test(c) || c.toLowerCase().includes(ONEDRIVE_PAGE_PATH)) {
-              addVideoUrl(c);
-            }
+            addVideoUrl(c);
           });
         });
 
