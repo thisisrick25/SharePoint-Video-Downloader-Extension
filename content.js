@@ -5,6 +5,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
       const addVideoUrl = (url) => {
         if(!url || typeof url !== 'string') return;
+        const candidate = url.toLowerCase();
+        if(!candidate.includes('videomanifest') && !candidate.includes('.mp4') && !candidate.includes('onedrive.aspx')) {
+          return;
+        }
         try {
           const parsed = new URL(url, window.location.href);
           const href = parsed.href;
@@ -20,7 +24,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           if(idParam && idParam.toLowerCase().includes('.mp4')) {
             const base = `${parsed.protocol}//${parsed.host}`;
             const decodedPath = decodeURIComponent(idParam);
-            const downloadUrl = `${base}/_layouts/15/download.aspx?sourceurl=${encodeURIComponent(base + decodedPath)}`;
+            const normalizedPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`;
+            const downloadUrl = `${base}/_layouts/15/download.aspx?sourceurl=${encodeURIComponent(base + normalizedPath)}`;
             manifestUrls.add(downloadUrl);
             return;
           }
