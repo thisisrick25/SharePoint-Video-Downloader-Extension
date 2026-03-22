@@ -69,6 +69,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         }
       };
       
+      const looksLikeUrl = (value) => {
+        if (!value || typeof value !== 'string') return false;
+        const lower = value.toLowerCase();
+        return lower.startsWith('http://')
+          || lower.startsWith('https://')
+          || (value.startsWith('/') && !value.startsWith('//'))
+          || lower.includes(ONEDRIVE_PAGE_PATH)
+          || (MP4_LINK_PATTERN.test(value) && value.includes('/'));
+      };
+      
       // Check if we can access the network requests
       if(window.performance && window.performance.getEntries) {
         const entries = window.performance.getEntries();
@@ -110,15 +120,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         '[aria-label]'
       ];
       const candidateElements = document.querySelectorAll(attributeSelectors.join(','));
-      const looksLikeUrl = (value) => {
-        if (!value || typeof value !== 'string') return false;
-        const lower = value.toLowerCase();
-        return lower.startsWith('http://')
-          || lower.startsWith('https://')
-          || (value.startsWith('/') && !value.startsWith('//'))
-          || lower.includes(ONEDRIVE_PAGE_PATH)
-          || (MP4_LINK_PATTERN.test(value) && value.includes('/'));
-      };
       for(let i = 0; i < candidateElements.length; i++) {
         const el = candidateElements[i];
         const attrs = [
@@ -141,9 +142,17 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           raw.split('|').map(p => p.trim()).filter(Boolean).forEach(p => candidateSet.add(p));
 
           if (entry.key === 'data-downloadurl' && raw.includes(':') && !raw.includes('://')) {
-            const colonParts = raw.split(':').map(p => p.trim()).filter(Boolean);
-            if (colonParts.length >= 2) {
-              candidateSet.add(colonParts[colonParts.length - 1]);
+            const queryIndex = raw.indexOf('?');
+            const hashIndex = raw.indexOf('#');
+            const boundary = [queryIndex, hashIndex].filter(idx => idx >= 0).sort((a, b) => a - b)[0] ?? -1;
+            const lastColon = raw.lastIndexOf(':');
+            const colonBeforeBoundary = boundary === -1 || lastColon < boundary;
+            // SharePoint data-downloadurl can be "mime:type:actualUrl" or similar; keep the trailing segment as the likely URL.
+            if (colonBeforeBoundary) {
+              const colonParts = raw.split(':').map(p => p.trim()).filter(Boolean);
+              if (colonParts.length >= 2) {
+                candidateSet.add(colonParts[colonParts.length - 1]);
+              }
             }
           }
 
