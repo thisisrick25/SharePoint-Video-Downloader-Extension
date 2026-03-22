@@ -43,6 +43,13 @@ This extension is not in the Chrome Web Store and must be loaded manually:
 3. If multiple videos are detected (e.g., on `{orgid}.sharepoint.com` lists), pick one from the dropdown or copy commands for all detected videos.
 4. Paste the generated `ffmpeg` command into your terminal or command prompt to download the video
 
+### FFmpeg auto-detection
+
+- The extension will try to pre-fill the FFmpeg path based on your OS:
+  - Windows: common Chocolatey and manual installs (e.g., `C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe`)
+  - macOS: `/opt/homebrew/bin/ffmpeg`, `/usr/local/bin/ffmpeg`
+  - Linux: `/usr/bin/ffmpeg`, `/usr/local/bin/ffmpeg`
+- If FFmpeg is installed elsewhere, open **Settings** in the popup and set the path manually.
 
 
 ## 📦 How to Install FFmpeg

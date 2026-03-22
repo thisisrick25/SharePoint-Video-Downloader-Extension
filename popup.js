@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let videoUrls = [];
   let selectedVideoUrl = null;
   let transcriptData = null;
+  let autoDetectedFfmpegPath = '';
 
   const showStatus = (message, isSuccess) => {
     statusDiv.textContent = message;
@@ -38,10 +39,61 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
   };
 
-  // Load saved settings
+  const getPlatformDefaultFfmpegPaths = (osName) => {
+    if(osName === 'win') {
+      return [
+        'C:\\\\ProgramData\\\\chocolatey\\\\lib\\\\ffmpeg\\\\tools\\\\ffmpeg\\\\bin\\\\ffmpeg.exe',
+        'C:\\\\ProgramData\\\\chocolatey\\\\bin\\\\ffmpeg.exe',
+        'C:\\\\ffmpeg\\\\bin\\\\ffmpeg.exe',
+        'C:\\\\Program Files\\\\ffmpeg\\\\bin\\\\ffmpeg.exe',
+        'ffmpeg.exe'
+      ];
+    }
+    if(osName === 'mac') {
+      return [
+        '/opt/homebrew/bin/ffmpeg',
+        '/usr/local/bin/ffmpeg',
+        '/usr/bin/ffmpeg',
+        'ffmpeg'
+      ];
+    }
+    // linux or other unix
+    return [
+      '/usr/bin/ffmpeg',
+      '/usr/local/bin/ffmpeg',
+      'ffmpeg'
+    ];
+  };
+
+  const detectPlatformAndSetFfmpeg = () => {
+    const applyAutoPath = (osName) => {
+      const candidates = getPlatformDefaultFfmpegPaths(osName);
+      autoDetectedFfmpegPath = candidates[0] || 'ffmpeg';
+      if(!ffmpegPathInput.value && autoDetectedFfmpegPath) {
+        ffmpegPathInput.value = autoDetectedFfmpegPath;
+        showStatus(`FFmpeg path auto-detected for ${osName === 'win' ? 'Windows' : osName === 'mac' ? 'macOS' : 'Linux/Unix'}.`, true);
+      }
+    };
+
+    if(chrome.runtime && chrome.runtime.getPlatformInfo) {
+      chrome.runtime.getPlatformInfo(function(info) {
+        applyAutoPath(info?.os || 'linux');
+      });
+    } else {
+      const platform = navigator.userAgent.toLowerCase().includes('win') ? 'win'
+        : navigator.userAgent.toLowerCase().includes('mac') ? 'mac'
+        : 'linux';
+      applyAutoPath(platform);
+    }
+  };
+
+  // Load saved settings and attempt FFmpeg auto-detection
   chrome.storage.local.get(['ffmpegPath', 'downloadFolder'], function(result) {
     if(result.ffmpegPath) ffmpegPathInput.value = result.ffmpegPath;
     if(result.downloadFolder) downloadFolderInput.value = result.downloadFolder;
+    if(!result.ffmpegPath) {
+      detectPlatformAndSetFfmpeg();
+    }
   });
 
   // Settings panel toggle
@@ -152,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
     chrome.storage.local.get(['ffmpegPath', 'downloadFolder'], function(result) {
       const filename = filenameInput.value || 'video.mp4'; // Now uses the title of the page or default 'video.mp4'
-      const ffmpegPath = result.ffmpegPath || 'ffmpeg';
+      const ffmpegPath = result.ffmpegPath || ffmpegPathInput.value || autoDetectedFfmpegPath || 'ffmpeg';
       const downloadFolder = result.downloadFolder || '.';
       const outputPath = downloadFolder ? `${downloadFolder}/${filename}` : filename;
       
@@ -203,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     chrome.storage.local.get(['ffmpegPath', 'downloadFolder'], function(result) {
       const baseName = filenameInput.value || 'video';
-      const ffmpegPath = result.ffmpegPath || 'ffmpeg';
+      const ffmpegPath = result.ffmpegPath || ffmpegPathInput.value || autoDetectedFfmpegPath || 'ffmpeg';
       const downloadFolder = result.downloadFolder || '.';
 
       const commands = videoUrls.map((url, index) => {
