@@ -1,6 +1,7 @@
 // content.js
 const SHAREPOINT_DOWNLOAD_ENDPOINT = '/_layouts/15/download.aspx';
 const ONEDRIVE_PAGE_PATH = '/_layouts/15/onedrive.aspx';
+const ONEDRIVE_PAGE_PATH_LOWER = ONEDRIVE_PAGE_PATH.toLowerCase();
 const MP4_LINK_PATTERN = /\.mp4($|[?#/])/;
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if(request.action === "detectVideo") {
@@ -17,7 +18,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           const idLower = idParam ? idParam.toLowerCase() : '';
           const looksLikeVideo = hrefLower.includes('videomanifest')
             || pathLower.endsWith('.mp4')
-            || pathLower.includes(ONEDRIVE_PAGE_PATH.toLowerCase())
+            || pathLower.includes(ONEDRIVE_PAGE_PATH_LOWER)
             || idLower.endsWith('.mp4');
           if(!looksLikeVideo) {
             return;
@@ -86,7 +87,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         const hrefLower = href.toLowerCase();
         const looksLikeVideoLink = hrefLower.includes('videomanifest')
           || MP4_LINK_PATTERN.test(hrefLower)
-          || hrefLower.includes(ONEDRIVE_PAGE_PATH.toLowerCase());
+          || hrefLower.includes(ONEDRIVE_PAGE_PATH_LOWER);
         if(!looksLikeVideoLink) continue;
         addVideoUrl(href);
       }
