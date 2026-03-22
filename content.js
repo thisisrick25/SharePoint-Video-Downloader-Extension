@@ -3,9 +3,36 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if(request.action === "detectVideo") {
       const manifestUrls = new Set();
 
-      const addManifestUrl = (url) => {
-        if(url && typeof url === 'string' && url.includes('videomanifest')) {
-          manifestUrls.add(url);
+      const addVideoUrl = (url) => {
+        if(!url || typeof url !== 'string') return;
+        try {
+          const parsed = new URL(url, window.location.href);
+          const href = parsed.href;
+
+          // Existing behavior: collect videomanifest links immediately.
+          if(href.includes('videomanifest')) {
+            manifestUrls.add(href);
+            return;
+          }
+
+          // OneDrive/SharePoint list view links: onedrive.aspx?id=<path to *.mp4>
+          const idParam = parsed.searchParams.get('id');
+          if(idParam && idParam.toLowerCase().includes('.mp4')) {
+            const base = `${parsed.protocol}//${parsed.host}`;
+            const decodedPath = decodeURIComponent(idParam);
+            const downloadUrl = `${base}/_layouts/15/download.aspx?sourceurl=${encodeURIComponent(base + decodedPath)}`;
+            manifestUrls.add(downloadUrl);
+            return;
+          }
+
+          // Direct mp4 links on the page; ensure they are download links.
+          if(parsed.pathname.toLowerCase().endsWith('.mp4')) {
+            const hasDownload = parsed.searchParams.get('download') === '1';
+            const downloadUrl = hasDownload ? href : `${parsed.origin}${parsed.pathname}?download=1`;
+            manifestUrls.add(downloadUrl);
+          }
+        } catch (e) {
+          // ignore malformed URLs
         }
       };
       
@@ -14,7 +41,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         const entries = window.performance.getEntries();
         for(let i = 0; i < entries.length; i++) {
           const entry = entries[i];
-          addManifestUrl(entry.name);
+          addVideoUrl(entry.name);
         }
       }
       
@@ -22,7 +49,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       const videoElements = document.querySelectorAll('video');
       for(let i = 0; i < videoElements.length; i++) {
         const video = videoElements[i];
-        addManifestUrl(video.src);
+        addVideoUrl(video.src);
+      }
+
+      // Look for list-view anchors that point to videos (even if not yet played)
+      const anchorElements = document.querySelectorAll('a[href]');
+      for(let i = 0; i < anchorElements.length; i++) {
+        const href = anchorElements[i].getAttribute('href');
+        addVideoUrl(href);
       }
       
       if(manifestUrls.size > 0) {
@@ -79,7 +113,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       // Listen for messages from the injected script
       const messageHandler = function(event) {
         if(event.data && event.data.type === 'VIDEO_MANIFEST_FOUND') {
-          addManifestUrl(event.data.url);
+          addVideoUrl(event.data.url);
           respondWithFoundUrls();
         }
       };
