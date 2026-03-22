@@ -108,7 +108,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       ];
       const candidateElements = document.querySelectorAll(attributeSelectors.join(','));
       const looksLikeUrl = (value) => {
-        if(!value || typeof value !== 'string') return false;
+        if (!value || typeof value !== 'string') return false;
         const lower = value.toLowerCase();
         return lower.startsWith('http://')
           || lower.startsWith('https://')
@@ -132,32 +132,32 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         // data-downloadurl can be pipe- or colon-delimited; pick likely URL parts.
         attrs.forEach(entry => {
           const raw = entry.value;
-          if(!raw) return;
+          if (!raw) return;
           const candidateSet = new Set();
 
           raw.split('|').map(p => p.trim()).filter(Boolean).forEach(p => candidateSet.add(p));
 
-          if(entry.key === 'data-downloadurl' && raw.includes(':')) {
+          if (entry.key === 'data-downloadurl' && raw.includes(':')) {
             const colonParts = raw.split(':').map(p => p.trim()).filter(Boolean);
-            if(colonParts.length >= 2) {
+            if (colonParts.length >= 2) {
               candidateSet.add(colonParts[colonParts.length - 1]);
             }
           }
 
-          if(candidateSet.size === 0) {
+          if (candidateSet.size === 0) {
             candidateSet.add(raw);
           }
 
           candidateSet.forEach(c => {
-            if(!looksLikeUrl(c)) return;
-            if(MP4_LINK_PATTERN.test(c) || c.toLowerCase().includes(ONEDRIVE_PAGE_PATH)) {
+            if (!looksLikeUrl(c)) return;
+            if (MP4_LINK_PATTERN.test(c) || c.toLowerCase().includes(ONEDRIVE_PAGE_PATH)) {
               addVideoUrl(c);
             }
           });
         });
 
         const ariaLabel = el.getAttribute('aria-label') || '';
-        if(ariaLabel && MP4_LINK_PATTERN.test(ariaLabel)) {
+        if (ariaLabel && MP4_LINK_PATTERN.test(ariaLabel)) {
           addVideoUrl(ariaLabel);
         }
       }
