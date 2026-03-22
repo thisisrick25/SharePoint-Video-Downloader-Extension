@@ -52,14 +52,17 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
           // Direct mp4 links on the page; ensure they are download links.
           if(pathLower.endsWith('.mp4')) {
-            const hasDownload = parsed.searchParams.get('download') === '1';
-            if(hasDownload) {
+            const alreadyDownloadEndpoint = pathLower.includes('/download.aspx');
+            if(alreadyDownloadEndpoint) {
               manifestUrls.add(href);
               return;
             }
-            const updated = new URL(href);
-            updated.searchParams.set('download', '1');
-            manifestUrls.add(updated.toString());
+
+            // Prefer SharePoint download.aspx to preserve auth context.
+            const absoluteSource = parsed.href;
+            const downloadUrl = `${parsed.protocol}//${parsed.host}${SHAREPOINT_DOWNLOAD_ENDPOINT}?sourceurl=${encodeURIComponent(absoluteSource)}`;
+            manifestUrls.add(downloadUrl);
+            return;
           }
         } catch (e) {
           console.warn('SP Video Downloader: skipping malformed video URL', { url, error: e });
