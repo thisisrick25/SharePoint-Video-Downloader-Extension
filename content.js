@@ -1,32 +1,35 @@
 // content.js
 const SHAREPOINT_DOWNLOAD_ENDPOINT = '/_layouts/15/download.aspx';
 const ONEDRIVE_PAGE_PATH = '/_layouts/15/onedrive.aspx';
-const ONEDRIVE_PAGE_PATH_LOWER = ONEDRIVE_PAGE_PATH.toLowerCase();
-const MP4_LINK_PATTERN = /\.mp4($|[?#/])/;
+const MP4_LINK_PATTERN = /\.mp4($|[?#/])/i;
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if(request.action === "detectVideo") {
       const manifestUrls = new Set();
 
       const addVideoUrl = (url) => {
         if(!url || typeof url !== 'string') return;
+        const quickLower = url.toLowerCase();
+        if(!quickLower.includes('videomanifest') && !quickLower.includes('.mp4') && !quickLower.includes('onedrive.aspx')) {
+          return;
+        }
         try {
           const parsed = new URL(url, window.location.href);
           const href = parsed.href;
           const hrefLower = href.toLowerCase();
-          const pathLower = parsed.pathname.toLowerCase();
-          const idParam = parsed.searchParams.get('id');
-          const idLower = idParam ? idParam.toLowerCase() : '';
-          const looksLikeVideo = hrefLower.includes('videomanifest')
-            || pathLower.endsWith('.mp4')
-            || pathLower.includes(ONEDRIVE_PAGE_PATH_LOWER)
-            || idLower.endsWith('.mp4');
-          if(!looksLikeVideo) {
+
+          // Existing behavior: collect videomanifest links immediately.
+          if(hrefLower.includes('videomanifest')) {
+            manifestUrls.add(href);
             return;
           }
 
-          // Existing behavior: collect videomanifest links immediately.
-          if(href.includes('videomanifest')) {
-            manifestUrls.add(href);
+          const pathLower = parsed.pathname.toLowerCase();
+          const idParam = parsed.searchParams.get('id');
+          const idLower = idParam ? idParam.toLowerCase() : '';
+          const looksLikeVideo = pathLower.endsWith('.mp4')
+            || pathLower.includes(ONEDRIVE_PAGE_PATH)
+            || idLower.endsWith('.mp4');
+          if(!looksLikeVideo) {
             return;
           }
 
@@ -37,7 +40,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             try {
               decodedPath = decodeURIComponent(idParam);
             } catch (e) {
-              console.warn('SP Video Downloader: unable to decode OneDrive item id', idParam);
+              console.warn('SP Video Downloader: skipping malformed OneDrive item id', { idParam, error: e });
               return;
             }
             const normalizedPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`;
@@ -59,7 +62,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             manifestUrls.add(updated.toString());
           }
         } catch (e) {
-          console.warn('SP Video Downloader: skipping malformed video URL', url);
+          console.warn('SP Video Downloader: skipping malformed video URL', { url, error: e });
         }
       };
       
@@ -83,11 +86,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       const anchorElements = document.querySelectorAll('a[href]');
       for(let i = 0; i < anchorElements.length; i++) {
         const href = anchorElements[i].href;
-        if(!href) continue;
         const hrefLower = href.toLowerCase();
         const looksLikeVideoLink = hrefLower.includes('videomanifest')
-          || MP4_LINK_PATTERN.test(hrefLower)
-          || hrefLower.includes(ONEDRIVE_PAGE_PATH_LOWER);
+          || MP4_LINK_PATTERN.test(href)
+          || hrefLower.includes(ONEDRIVE_PAGE_PATH);
         if(!looksLikeVideoLink) continue;
         addVideoUrl(href);
       }
