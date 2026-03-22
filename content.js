@@ -62,7 +62,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
           // Direct mp4 links on the page; ensure they are download links.
           if(pathLower.endsWith('.mp4')) {
-            const alreadyDownloadEndpoint = pathLower.includes('/download.aspx');
+            const alreadyDownloadEndpoint = pathLower.includes(SHAREPOINT_DOWNLOAD_ENDPOINT.toLowerCase());
             if(alreadyDownloadEndpoint) {
               manifestUrls.add(href);
               return;
@@ -149,7 +149,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             // SharePoint data-downloadurl is typically "mime/type:<actual-url>"; grab text after the first colon before any query/hash.
             const firstColon = raw.indexOf(':');
             const colonBeforeBoundary = firstColon > -1 && firstColon < boundary;
-            if (colonBeforeBoundary) {
+            const colonIsProtocol = raw.slice(firstColon, firstColon + 3) === '://';
+            if (colonBeforeBoundary && !colonIsProtocol) {
               const tail = raw.slice(firstColon + 1).trim();
               if (tail) {
                 candidateSet.add(tail);
@@ -157,7 +158,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             }
           }
 
-          if (candidateSet.size === 0) {
+          if (candidateSet.size === 0 && !raw.includes(':')) {
             candidateSet.add(raw);
           }
 
