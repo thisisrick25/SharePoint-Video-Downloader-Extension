@@ -107,25 +107,49 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         '[aria-label]'
       ];
       const candidateElements = document.querySelectorAll(attributeSelectors.join(','));
+      const looksLikeUrl = (value) => {
+        if(!value || typeof value !== 'string') return false;
+        const lower = value.toLowerCase();
+        return lower.startsWith('http://')
+          || lower.startsWith('https://')
+          || value.startsWith('/')
+          || lower.includes(ONEDRIVE_PAGE_PATH)
+          || (MP4_LINK_PATTERN.test(value) && value.includes('/'));
+      };
       for(let i = 0; i < candidateElements.length; i++) {
         const el = candidateElements[i];
         const attrs = [
-          el.getAttribute('data-downloadurl'),
-          el.getAttribute('data-href'),
-          el.getAttribute('data-url'),
-          el.getAttribute('data-linkhref'),
-          el.getAttribute('data-item-path'),
-          el.getAttribute('data-path'),
-          el.getAttribute('data-file-path'),
-          el.getAttribute('data-resource-path')
+          { key: 'data-downloadurl', value: el.getAttribute('data-downloadurl') },
+          { key: 'data-href', value: el.getAttribute('data-href') },
+          { key: 'data-url', value: el.getAttribute('data-url') },
+          { key: 'data-linkhref', value: el.getAttribute('data-linkhref') },
+          { key: 'data-item-path', value: el.getAttribute('data-item-path') },
+          { key: 'data-path', value: el.getAttribute('data-path') },
+          { key: 'data-file-path', value: el.getAttribute('data-file-path') },
+          { key: 'data-resource-path', value: el.getAttribute('data-resource-path') }
         ];
 
-        // data-downloadurl can be pipe-delimited; pick likely URL parts.
-        attrs.forEach(raw => {
+        // data-downloadurl can be pipe- or colon-delimited; pick likely URL parts.
+        attrs.forEach(entry => {
+          const raw = entry.value;
           if(!raw) return;
-          const pieces = raw.split('|').map(p => p.trim()).filter(Boolean);
-          const candidates = pieces.length > 1 ? pieces : [raw];
-          candidates.forEach(c => {
+          const candidateSet = new Set();
+
+          raw.split('|').map(p => p.trim()).filter(Boolean).forEach(p => candidateSet.add(p));
+
+          if(entry.key === 'data-downloadurl' && raw.includes(':')) {
+            const colonParts = raw.split(':').map(p => p.trim()).filter(Boolean);
+            if(colonParts.length >= 2) {
+              candidateSet.add(colonParts[colonParts.length - 1]);
+            }
+          }
+
+          if(candidateSet.size === 0) {
+            candidateSet.add(raw);
+          }
+
+          candidateSet.forEach(c => {
+            if(!looksLikeUrl(c)) return;
             if(MP4_LINK_PATTERN.test(c) || c.toLowerCase().includes(ONEDRIVE_PAGE_PATH)) {
               addVideoUrl(c);
             }
