@@ -138,10 +138,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           const raw = entry.value;
           if (!raw) return;
           const candidateSet = new Set();
+          let hadColon = false;
 
           raw.split('|').map(p => p.trim()).filter(Boolean).forEach(p => candidateSet.add(p));
 
           if (entry.key === 'data-downloadurl' && raw.includes(':')) {
+            hadColon = true;
             const queryIndex = raw.indexOf('?');
             const hashIndex = raw.indexOf('#');
             const boundaryCandidates = [queryIndex, hashIndex].filter(idx => idx >= 0);
@@ -149,7 +151,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
             // SharePoint data-downloadurl is typically "mime/type:<actual-url>"; grab text after the first colon before any query/hash.
             const firstColon = raw.indexOf(':');
             const colonBeforeBoundary = firstColon > -1 && firstColon < boundary;
-            const colonFollowedBySlashes = raw.slice(firstColon, firstColon + 3) === '://';
+            const colonFollowedBySlashes = firstColon > -1 && (firstColon + 3) <= raw.length && raw.slice(firstColon, firstColon + 3) === '://';
             if (colonBeforeBoundary && !colonFollowedBySlashes) {
               const tail = raw.slice(firstColon + 1).trim();
               if (tail) {
@@ -159,7 +161,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           }
 
           // Only fall back to the raw value when no candidates were found and there was no colon metadata to strip.
-          if (candidateSet.size === 0 && !raw.includes(':')) {
+          if (candidateSet.size === 0 && !hadColon) {
             candidateSet.add(raw);
           }
 
