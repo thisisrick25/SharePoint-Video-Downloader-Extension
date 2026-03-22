@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           // OneDrive/SharePoint list view links: onedrive.aspx?id=<path to *.mp4>
           if(idParam && idParam.toLowerCase().endsWith('.mp4')) {
             const base = `${parsed.protocol}//${parsed.host}`;
-            let decodedPath = idParam;
+            let decodedPath;
             try {
               decodedPath = decodeURIComponent(idParam);
             } catch (e) {
@@ -38,7 +38,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
               return;
             }
             const normalizedPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`;
-            const downloadUrl = `${base}${SHAREPOINT_DOWNLOAD_ENDPOINT}?sourceurl=${encodeURIComponent(base + normalizedPath)}`;
+            const sourceUrl = `${base}${normalizedPath}`;
+            const downloadUrl = `${base}${SHAREPOINT_DOWNLOAD_ENDPOINT}?sourceurl=${encodeURIComponent(sourceUrl)}`;
             manifestUrls.add(downloadUrl);
             return;
           }
@@ -78,7 +79,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       // Look for list-view anchors that point to videos (even if not yet played)
       const anchorElements = document.querySelectorAll('a[href]');
       for(let i = 0; i < anchorElements.length; i++) {
-        const href = anchorElements[i].getAttribute('href');
+        const href = anchorElements[i].href;
         addVideoUrl(href);
       }
       
