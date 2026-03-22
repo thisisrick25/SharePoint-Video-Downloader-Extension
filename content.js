@@ -85,8 +85,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         if(!href) continue;
         const hrefLower = href.toLowerCase();
         const looksLikeVideoLink = hrefLower.includes('videomanifest')
-          || MP4_LINK_PATTERN.test(hrefLower)
-          || hrefLower.includes('onedrive.aspx');
+          || MP4_LINK_PATTERN.test(href)
+          || hrefLower.includes(ONEDRIVE_PAGE_PATH.toLowerCase());
         if(!looksLikeVideoLink) continue;
         addVideoUrl(href);
       }
