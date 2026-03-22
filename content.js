@@ -93,6 +93,50 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         if(!looksLikeVideoLink) continue;
         addVideoUrl(href);
       }
+
+      // SharePoint list rows often store file URLs in data-* attributes without navigation.
+      const attributeSelectors = [
+        '[data-downloadurl]',
+        '[data-href]',
+        '[data-url]',
+        '[data-linkhref]',
+        '[data-item-path]',
+        '[data-path]',
+        '[data-file-path]',
+        '[data-resource-path]',
+        '[aria-label]'
+      ];
+      const candidateElements = document.querySelectorAll(attributeSelectors.join(','));
+      for(let i = 0; i < candidateElements.length; i++) {
+        const el = candidateElements[i];
+        const attrs = [
+          el.getAttribute('data-downloadurl'),
+          el.getAttribute('data-href'),
+          el.getAttribute('data-url'),
+          el.getAttribute('data-linkhref'),
+          el.getAttribute('data-item-path'),
+          el.getAttribute('data-path'),
+          el.getAttribute('data-file-path'),
+          el.getAttribute('data-resource-path')
+        ];
+
+        // data-downloadurl can be pipe-delimited; pick likely URL parts.
+        attrs.forEach(raw => {
+          if(!raw) return;
+          const pieces = raw.split('|').map(p => p.trim()).filter(Boolean);
+          const candidates = pieces.length > 1 ? pieces : [raw];
+          candidates.forEach(c => {
+            if(MP4_LINK_PATTERN.test(c) || c.toLowerCase().includes(ONEDRIVE_PAGE_PATH)) {
+              addVideoUrl(c);
+            }
+          });
+        });
+
+        const ariaLabel = el.getAttribute('aria-label') || '';
+        if(ariaLabel && MP4_LINK_PATTERN.test(ariaLabel)) {
+          addVideoUrl(ariaLabel);
+        }
+      }
       
       if(manifestUrls.size > 0) {
         sendResponse({videoManifestUrls: Array.from(manifestUrls)});
