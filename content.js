@@ -13,9 +13,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           const pathLower = parsed.pathname.toLowerCase();
           const idParam = parsed.searchParams.get('id');
           const idLower = idParam ? idParam.toLowerCase() : '';
+          const isOneDrivePath = pathLower.endsWith('/onedrive.aspx') || pathLower.includes('/_layouts/15/onedrive.aspx');
           const looksLikeVideo = hrefLower.includes('videomanifest')
             || pathLower.endsWith('.mp4')
-            || pathLower.includes('/onedrive.aspx')
+            || isOneDrivePath
             || idLower.endsWith('.mp4');
           if(!looksLikeVideo) {
             return;
@@ -28,7 +29,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           }
 
           // OneDrive/SharePoint list view links: onedrive.aspx?id=<path to *.mp4>
-          if(idParam && idParam.toLowerCase().endsWith('.mp4')) {
+          if(idParam && idLower.endsWith('.mp4')) {
             const base = `${parsed.protocol}//${parsed.host}`;
             let decodedPath;
             try {
@@ -80,6 +81,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       const anchorElements = document.querySelectorAll('a[href]');
       for(let i = 0; i < anchorElements.length; i++) {
         const href = anchorElements[i].href;
+        if(!href || !/(videomanifest|\.mp4|onedrive\.aspx)/i.test(href)) continue;
         addVideoUrl(href);
       }
       
