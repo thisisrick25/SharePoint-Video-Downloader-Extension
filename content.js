@@ -2,7 +2,6 @@
 const SHAREPOINT_DOWNLOAD_ENDPOINT = '/_layouts/15/download.aspx';
 const ONEDRIVE_PAGE_PATH = '/_layouts/15/onedrive.aspx';
 const MP4_LINK_PATTERN = /\.mp4($|[?#/])/i;
-const MIN_COLON_PARTS = 2;
 
 const looksLikeUrl = (value) => {
   if (!value || typeof value !== 'string') return false;
@@ -142,19 +141,18 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
           raw.split('|').map(p => p.trim()).filter(Boolean).forEach(p => candidateSet.add(p));
 
-          if (entry.key === 'data-downloadurl' && raw.includes(':') && !raw.includes('://')) {
+          if (entry.key === 'data-downloadurl' && raw.includes(':')) {
             const queryIndex = raw.indexOf('?');
             const hashIndex = raw.indexOf('#');
             const boundaryCandidates = [queryIndex, hashIndex].filter(idx => idx >= 0);
-            const boundary = boundaryCandidates.length ? Math.min(...boundaryCandidates) : -1;
-            const lastColon = raw.lastIndexOf(':');
-            const colonBeforeBoundary = boundary === -1 || lastColon < boundary;
-            // SharePoint data-downloadurl can be "mime:type:actualUrl" or similar; keep the trailing segment as the likely URL when the colon appears before any query/hash.
+            const boundary = boundaryCandidates.length ? Math.min(...boundaryCandidates) : raw.length;
+            // SharePoint data-downloadurl is typically "mime/type:<actual-url>"; grab text after the first colon before any query/hash.
+            const firstColon = raw.indexOf(':');
+            const colonBeforeBoundary = firstColon > -1 && firstColon < boundary;
             if (colonBeforeBoundary) {
-              const colonParts = raw.split(':').map(p => p.trim()).filter(Boolean);
-              // Require at least mime/type + URL segments before using the trailing entry.
-              if (colonParts.length >= MIN_COLON_PARTS) {
-                candidateSet.add(colonParts[colonParts.length - 1]);
+              const tail = raw.slice(firstColon + 1).trim();
+              if (tail) {
+                candidateSet.add(tail);
               }
             }
           }
