@@ -115,7 +115,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         const lower = value.toLowerCase();
         return lower.startsWith('http://')
           || lower.startsWith('https://')
-          || value.startsWith('/')
+          || (value.startsWith('/') && !value.startsWith('//'))
           || lower.includes(ONEDRIVE_PAGE_PATH)
           || (MP4_LINK_PATTERN.test(value) && value.includes('/'));
       };
@@ -140,7 +140,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
           raw.split('|').map(p => p.trim()).filter(Boolean).forEach(p => candidateSet.add(p));
 
-          if (entry.key === 'data-downloadurl' && raw.includes(':')) {
+          if (entry.key === 'data-downloadurl' && raw.includes(':') && !raw.includes('://')) {
             const colonParts = raw.split(':').map(p => p.trim()).filter(Boolean);
             if (colonParts.length >= 2) {
               candidateSet.add(colonParts[colonParts.length - 1]);
