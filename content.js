@@ -5,8 +5,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
       const addVideoUrl = (url) => {
         if(!url || typeof url !== 'string') return;
-        const candidate = url.toLowerCase();
-        if(!candidate.includes('videomanifest') && !candidate.includes('.mp4') && !candidate.includes('onedrive.aspx')) {
+        if(!/(videomanifest|\.mp4|onedrive\.aspx)/i.test(url)) {
           return;
         }
         try {
@@ -21,7 +20,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
           // OneDrive/SharePoint list view links: onedrive.aspx?id=<path to *.mp4>
           const idParam = parsed.searchParams.get('id');
-          if(idParam && idParam.toLowerCase().includes('.mp4')) {
+          if(idParam && idParam.toLowerCase().endsWith('.mp4')) {
             const base = `${parsed.protocol}//${parsed.host}`;
             const decodedPath = decodeURIComponent(idParam);
             const normalizedPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`;
@@ -33,8 +32,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
           // Direct mp4 links on the page; ensure they are download links.
           if(parsed.pathname.toLowerCase().endsWith('.mp4')) {
             const hasDownload = parsed.searchParams.get('download') === '1';
-            const downloadUrl = hasDownload ? href : `${parsed.origin}${parsed.pathname}?download=1`;
-            manifestUrls.add(downloadUrl);
+            if(hasDownload) {
+              manifestUrls.add(href);
+              return;
+            }
+            const updated = new URL(href);
+            updated.searchParams.set('download', '1');
+            manifestUrls.add(updated.toString());
           }
         } catch (e) {
           // ignore malformed URLs
@@ -58,7 +62,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       }
 
       // Look for list-view anchors that point to videos (even if not yet played)
-      const anchorElements = document.querySelectorAll('a[href]');
+      const anchorElements = document.querySelectorAll('a[href*=\"onedrive.aspx\"], a[href*=\".mp4\"]');
       for(let i = 0; i < anchorElements.length; i++) {
         const href = anchorElements[i].getAttribute('href');
         addVideoUrl(href);
