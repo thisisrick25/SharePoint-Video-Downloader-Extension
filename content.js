@@ -1,78 +1,99 @@
 // content.js
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if(request.action === "detectVideo") {
-      // Find video manifest URL from network requests
-      let foundUrl = null;
+      const manifestUrls = new Set();
+
+      const addManifestUrl = (url) => {
+        if(url && typeof url === 'string' && url.includes('videomanifest')) {
+          manifestUrls.add(url);
+        }
+      };
       
       // Check if we can access the network requests
       if(window.performance && window.performance.getEntries) {
         const entries = window.performance.getEntries();
         for(let i = 0; i < entries.length; i++) {
           const entry = entries[i];
-          if(entry.name && typeof entry.name === 'string' && 
-             entry.name.includes('videomanifest?provider')) {
-            foundUrl = entry.name;
-            break;
-          }
+          addManifestUrl(entry.name);
         }
       }
       
-      // If we didn't find it, try an alternative approach
-      if(!foundUrl) {
-        // Look for video elements
-        const videoElements = document.querySelectorAll('video');
-        for(let i = 0; i < videoElements.length; i++) {
-          const video = videoElements[i];
-          if(video.src && video.src.includes('videomanifest')) {
-            foundUrl = video.src;
-            break;
-          }
-        }
-        
-        // Try to get manifest URL from any source available
-        if(!foundUrl) {
-          // Insert a script to watch XHR requests
-          const script = document.createElement('script');
-          script.textContent = `
-            (function() {
-              // Listen for video manifest URL
-              window.addEventListener('message', function(event) {
-                if(event.data && event.data.type === 'VIDEO_MANIFEST_URL') {
-                  window.postMessage({type: 'VIDEO_MANIFEST_FOUND', url: event.data.url}, '*');
-                }
-              });
-              
-              // Watch for XHR requests
-              const originalOpen = XMLHttpRequest.prototype.open;
-              XMLHttpRequest.prototype.open = function(method, url) {
-                if(url && url.includes('videomanifest?provider')) {
-                  window.postMessage({type: 'VIDEO_MANIFEST_FOUND', url: url}, '*');
-                }
-                return originalOpen.apply(this, arguments);
-              };
-            })();
-          `;
+      // Look for video elements on the page
+      const videoElements = document.querySelectorAll('video');
+      for(let i = 0; i < videoElements.length; i++) {
+        const video = videoElements[i];
+        addManifestUrl(video.src);
+      }
+      
+      if(manifestUrls.size > 0) {
+        sendResponse({videoManifestUrls: Array.from(manifestUrls)});
+        return true;
+      }
+      
+      // Try to get manifest URL(s) from any source available
+      const script = document.createElement('script');
+      script.textContent = `
+        (function() {
+          const notifyIfManifest = function(url) {
+            if(url && url.includes('videomanifest')) {
+              window.postMessage({type: 'VIDEO_MANIFEST_FOUND', url: url}, '*');
+            }
+          };
           
-          document.head.appendChild(script);
-          
-          // Listen for messages from the injected script
+          // Listen for video manifest URL messages from other scripts
           window.addEventListener('message', function(event) {
-            if(event.data && event.data.type === 'VIDEO_MANIFEST_FOUND') {
-              foundUrl = event.data.url;
-              sendResponse({videoManifestUrl: foundUrl});
+            if(event.data && event.data.type === 'VIDEO_MANIFEST_URL') {
+              notifyIfManifest(event.data.url);
             }
           });
           
-          // If we still don't have a URL, prompt the user to play the video
-          if(!foundUrl) {
-            alert('Please start playing the video to detect the URL. Then click "Detect Video" again.');
+          // Watch for XHR requests
+          const originalOpen = XMLHttpRequest.prototype.open;
+          XMLHttpRequest.prototype.open = function(method, url) {
+            notifyIfManifest(url);
+            return originalOpen.apply(this, arguments);
+          };
+
+          // Watch for fetch calls
+          if(window.fetch) {
+            const originalFetch = window.fetch;
+            window.fetch = function(input, init) {
+              const url = typeof input === 'string' ? input : (input && input.url);
+              notifyIfManifest(url);
+              return originalFetch.call(this, input, init);
+            };
           }
-        }
-      }
+        })();
+      `;
       
-      if(foundUrl) {
-        sendResponse({videoManifestUrl: foundUrl});
-      }
+      document.head.appendChild(script);
+      
+      let responded = false;
+      const respondWithFoundUrls = () => {
+        if(!responded) {
+          responded = true;
+          sendResponse({videoManifestUrls: Array.from(manifestUrls)});
+        }
+      };
+
+      // Listen for messages from the injected script
+      const messageHandler = function(event) {
+        if(event.data && event.data.type === 'VIDEO_MANIFEST_FOUND') {
+          addManifestUrl(event.data.url);
+          respondWithFoundUrls();
+        }
+      };
+
+      window.addEventListener('message', messageHandler);
+      
+      // If we still don't have a URL, prompt the user to play the video and respond with empty list
+      setTimeout(() => {
+        if(manifestUrls.size === 0) {
+          alert('Please start playing the video to detect the URL. Then click "Detect Video" again.');
+        }
+        respondWithFoundUrls();
+        window.removeEventListener('message', messageHandler);
+      }, 2000);
       
       // Return true to indicate we'll send a response asynchronously
       return true;

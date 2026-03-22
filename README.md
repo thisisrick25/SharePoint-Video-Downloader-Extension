@@ -11,6 +11,7 @@ Rather than downloading the video directly, the extension provides a ready-to-us
 ## 🛠 Features
 
 - Detects embedded video sources on SharePoint
+- Detects multiple videos on a SharePoint page and lets you copy FFmpeg commands for each or all at once
 - Automatically generates a valid `ffmpeg` command
 - Copies the command to your clipboard for easy use
 
@@ -37,8 +38,9 @@ This extension is not in the Chrome Web Store and must be loaded manually:
 ## 🧪 How to Use
 
 1. Go to a SharePoint or Microsoft Stream (Classic) video page
-2. Click the extenstion icon in the extenstions bar, there will be a button to detect the video, and generate the command, you can then copy it. 
-3. Paste the generated `ffmpeg` command into your terminal or command prompt to download the video
+2. Click the extension icon in the extensions bar, there will be a button to detect the video, and generate the command, you can then copy it. 
+3. If multiple videos are detected (e.g., on `{orgid}.sharepoint.com` lists), pick one from the dropdown or copy commands for all detected videos.
+4. Paste the generated `ffmpeg` command into your terminal or command prompt to download the video
 
 
 
