@@ -11,6 +11,8 @@ Rather than downloading the video directly, the extension provides a ready-to-us
 ## 🛠 Features
 
 - Detects embedded video sources on SharePoint
+- Detects multiple videos on a SharePoint page and lets you copy FFmpeg commands for each or all at once
+- Detects OneDrive/SharePoint list-view video links and builds download URLs without needing to play each video
 - Automatically generates a valid `ffmpeg` command
 - Copies the command to your clipboard for easy use
 
@@ -22,7 +24,8 @@ This extension is not in the Chrome Web Store and must be loaded manually:
 
 ### 1. Download the Extension
 
-- Clone this repository or [download it as a ZIP](https://github.com/MexxDirkx/SharePoint-Video-Downloader-Extension/archive/refs/heads/main.zip)
+- Use the prebuilt archive in this repo: `dist/SharePoint-Video-Downloader-Extension.zip`
+- Or clone this repository or [download it as a ZIP](https://github.com/MexxDirkx/SharePoint-Video-Downloader-Extension/archive/refs/heads/main.zip)
 - Extract the contents to a folder on your computer
 
 ### 2. Load the Unpacked Extension in Chrome
@@ -37,9 +40,17 @@ This extension is not in the Chrome Web Store and must be loaded manually:
 ## 🧪 How to Use
 
 1. Go to a SharePoint or Microsoft Stream (Classic) video page
-2. Click the extenstion icon in the extenstions bar, there will be a button to detect the video, and generate the command, you can then copy it. 
-3. Paste the generated `ffmpeg` command into your terminal or command prompt to download the video
+2. Click the extension icon in the extensions bar, there will be a button to detect the video, and generate the command, you can then copy it. 
+3. If multiple videos are detected (e.g., on `{orgid}.sharepoint.com` lists), pick one from the dropdown or copy commands for all detected videos. On OneDrive/list views, the links can be gathered without opening or playing each video.
+4. Paste the generated `ffmpeg` command into your terminal or command prompt to download the video
 
+### FFmpeg auto-detection
+
+- The extension will try to pre-fill the FFmpeg path based on your OS:
+  - Windows: common Chocolatey and manual installs (e.g., `C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe`)
+  - macOS: `/opt/homebrew/bin/ffmpeg`, `/usr/local/bin/ffmpeg`
+  - Linux: `/usr/bin/ffmpeg`, `/usr/local/bin/ffmpeg`
+- If FFmpeg is installed elsewhere, open **Settings** in the popup and set the path manually.
 
 
 ## 📦 How to Install FFmpeg

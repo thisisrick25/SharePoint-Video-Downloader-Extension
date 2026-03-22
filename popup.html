@@ -29,7 +29,7 @@
       background-color: #cccccc;
       cursor: not-allowed;
     }
-    input[type="text"] {
+    input[type="text"], select {
       width: 100%;
       padding: 8px;
       margin: 8px 0;
@@ -70,19 +70,25 @@
 <body>
   <h2>SharePoint Video Downloader</h2>
   <div id="main-panel">
-    <p>Enter video filename:</p>
-    <input type="text" id="filename" placeholder="video.mp4">
-    
-    <button id="detect-video" class="button">Detect Video</button>
-    <button id="copy-command" class="button" disabled>Copy FFmpeg Command</button>
-    
-    <div id="video-info" class="hidden">
-      <p>Video detected! Ready to download.</p>
-      <div id="command-section" class="hidden">
-        <p>Run this command in your terminal:</p>
-        <div class="code-block" id="ffmpeg-command"></div>
-        <button id="copy-to-clipboard" class="button">Copy to Clipboard</button>
-      </div>
+     <p>Enter video filename:</p>
+     <input type="text" id="filename" placeholder="video.mp4">
+     
+     <button id="detect-video" class="button">Detect Video</button>
+     <button id="copy-command" class="button" disabled>Copy FFmpeg Command</button>
+     <button id="copy-all-commands" class="button" disabled>Copy All Commands</button>
+     
+     <div id="video-list-section" class="hidden">
+       <p>Select a video from the detected list:</p>
+       <select id="video-select"></select>
+     </div>
+
+     <div id="video-info" class="hidden">
+       <p id="video-count">Video detected! Ready to download.</p>
+       <div id="command-section" class="hidden">
+         <p>Run this command in your terminal:</p>
+         <div class="code-block" id="ffmpeg-command"></div>
+         <button id="copy-to-clipboard" class="button">Copy to Clipboard</button>
+       </div>
     </div>
     
     <div id="status" class="status"></div>
