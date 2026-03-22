@@ -23,7 +23,8 @@ This extension is not in the Chrome Web Store and must be loaded manually:
 
 ### 1. Download the Extension
 
-- Clone this repository or [download it as a ZIP](https://github.com/MexxDirkx/SharePoint-Video-Downloader-Extension/archive/refs/heads/main.zip)
+- Use the prebuilt archive in this repo: `dist/SharePoint-Video-Downloader-Extension.zip`
+- Or clone this repository or [download it as a ZIP](https://github.com/MexxDirkx/SharePoint-Video-Downloader-Extension/archive/refs/heads/main.zip)
 - Extract the contents to a folder on your computer
 
 ### 2. Load the Unpacked Extension in Chrome
